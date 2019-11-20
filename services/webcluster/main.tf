@@ -1,15 +1,15 @@
 
 data "aws_availability_zones" "all" {}
 
-data "terraform_remote_state" "db" {
-  backend = "s3"
-  config = {
-    # Replace this with your bucket name!
-    bucket = "basher590-terraform-state"
-    key    = "global/s3/remotestate/stage/datastore/mysql/terraform.tfstate"
-    region = "eu-west-2"
-  }
-}
+# data "terraform_remote_state" "db" {
+#   backend = "s3"
+#   config = {
+#     # Replace this with your bucket name!
+#     bucket = "basher590-terraform-state"
+#     key    = "global/s3/remotestate/stage/datastore/mysql/terraform.tfstate"
+#     region = "eu-west-2"
+#   }
+# }
 
 terraform {
   backend "s3" {
@@ -30,9 +30,10 @@ resource "aws_launch_configuration" "example" {
   
   user_data = <<-EOF
               #!/bin/bash
-              db_address="${data.terraform_remote_state.db.outputs.address}"
-              db_port="${data.terraform_remote_state.db.outputs.port}"
-              echo "Hello, World. DB is at $db_address:$db_port" >> index.html
+              # db_address="${data.terraform_remote_state.db.outputs.address}"
+              # db_port="${data.terraform_remote_state.db.outputs.port}"
+              # echo "Hello, World. DB is at $db_address:$db_port" >> index.html
+              echo "Hello, World." >> index.html
               nohup busybox httpd -f -p "${var.server_port}" &
               EOF
 
@@ -50,11 +51,19 @@ resource "aws_autoscaling_group" "example" {
   load_balancers    = [aws_elb.example.name]
   health_check_type = "ELB"
   
-  tag {
-    key                 = "Name"
-    value               = "${var.cluster_name}"
-    propagate_at_launch = true
+  dynamic "custom_tag" {
+    for_each = var.custom_tags
+    content {
+      key = custom_tag.key
+      value = custom_tag.value
+      propagate_at_launch = true
+    }
   }
+  # tag {
+  #   key                 = "Name"
+  #   value               = "${var.cluster_name}"
+  #   propagate_at_launch = true
+  # }
 }
 
 resource "aws_elb" "example" {
