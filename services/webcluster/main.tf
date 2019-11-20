@@ -48,7 +48,7 @@ resource "aws_autoscaling_group" "example" {
   load_balancers    = [aws_elb.example.name]
   health_check_type = "ELB"
   
-  dynamic "custom_tags" {
+  dynamic "tags" {
     for_each = var.custom_tags
     content {
       key = custom_tag.key
